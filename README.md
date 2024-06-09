@@ -33,5 +33,42 @@ That's true but the options on the market don't fulfill the requirements that I 
 This is why browsers like qutebrowsers don't qualify in my opinion
 
 
+### Supported Keybinds
+
+Normal Mode:
+- I: instantly go into the URL bar and switch into insert mode
+- i: go into insert mode and enter the next <input> field on the open webpage (not ready yet)
+- t: open a new tab 
+- x: close the open tab (or window if last tab)
+- j: scroll down
+- k: scroll up
+- J: go back in the browser history
+- K: go forward in the browser history
+- r: reload page
+- R: reload page and skip cache
+- /: open browser level search and enter insert mode
+- n: go to the next search result
+- N: go to the previous search result
+- u: browser level undo (not ready yet)
+- w: open a new window
+- W: open a new private window
+- Esc: defocus active input and enter normal mode
+
+Other:
+- C-p : enter special passthrough mode that will pass all keys to the browser, useful for stuff like browser games
+- C-r : browser level redo
+
+
+### how to use
+
+as of right now there are no official realeases.
+As soon as the project is ready, I will start looking into it.
+If you want to use it already. go through the following steps:
+
+- follow the offical Mozilla Steps on how to clone firefox
+- replace the files in the firefox/browser that have the same names and folder structure as the on in my repo.hat
+    For Example, replace the firefox/browser/base/content/browser-init.js with the file from this repo.
+- build and run the changed browser using `./mach build ; ./mach run`
+
 
 
