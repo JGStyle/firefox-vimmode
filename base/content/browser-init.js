@@ -308,54 +308,73 @@ var gBrowserInit = {
     this._boundDelayedStartup = null;
   },
 
+  _defocusInput() {
+    var urlBar = window.gBrowser.ownerDocument.getElementById("urlbar");
+    var tempInput = window.gBrowser.ownerDocument.createElement("input");
+    window.gBrowser.ownerDocument.body.appendChild(tempInput);
+    tempInput.focus();
+    tempInput.blur();
+    window.gBrowser.ownerDocument.body.removeChild(tempInput);
+
+    if (urlBar) {
+      urlBar.blur();
+    }
+  },
+
   // custom jgs
   _handleVimKeys(event) {
 
     if (event.ctrlKey && event.key === "p") {
-      if (window.gBrowser.vim_mode === "passthrough") {
+      if (window.gBrowser.vim_mode === "pass") {
         window.gBrowser.vim_mode = "normal";
       } else {
-        window.gBrowser.vim_mode = "passthrough";
+        window.gBrowser.vim_mode = "pass";
       }
-      console.log("[passthrough] " + (window.gBrowser.vim_mode === "passthrough") ? "on" : "off");
       return;
     }
 
-    if (window.gBrowser.vim_mode === "passthrough") {
+    console.log("[mode] " + window.gBrowser.vim_mode);
+    console.log("-");
+    if (window.gBrowser.vim_mode === "insert" && (event.key == "Escape" || event.key == "Enter")) {
+      window.gBrowser.vim_mode = "normal";
+      return;
+    }
+    if (window.gBrowser.vim_mode === "pass" || window.gBrowser.vim_mode === "insert") {
       return;
     }
 
-    function defocusInput() {
-      var urlBar = window.gBrowser.ownerDocument.getElementById("urlbar");
-      var tempInput = window.gBrowser.ownerDocument.createElement("input");
-      window.gBrowser.ownerDocument.body.appendChild(tempInput);
-      tempInput.focus();
-      tempInput.blur();
-      window.gBrowser.ownerDocument.body.removeChild(tempInput);
+    let commands = ["i", "I", "t", "x", "j", "J", "K", "r", "R", "/", "n", "N", "u", "w", "W", "Escape"]
+    let ctrl_commands = ["r"]
 
-      if (urlBar) {
-        urlBar.blur();
-      }
+    if (!commands.includes(event.key) && !ctrl_commands.includes(event.key)) {
+      return;
     }
 
+    console.log("[event]" + event);
 
-    console.log("running");
 
     // control commands
     if (event.ctrlKey && event.key === "r") {
       goDoCommand("cmd_redo")
       return;
     }
+    // non control commands
     switch (event.key) {
+      case "I":
+        BrowserSearch.webSearch();
+        window.gBrowser.vim_mode = "insert";
+        break;
       case "i":
-        BrowserSearch.webSearch()
+        // should open the first input element on the webpage
+        window.gBrowser.vim_mode = "insert";
         break;
 
       case "t":
-        BrowserCommands.openTab()
+        window.gBrowser.vim_mode = "insert";
+        BrowserCommands.openTab();
         break;
       case "x":
-        BrowserCommands.closeTabOrWindow()
+        BrowserCommands.closeTabOrWindow();
         break;
 
       case "j":
@@ -366,23 +385,28 @@ var gBrowserInit = {
         break;
 
       case "J":
-        BrowserCommands.back()
+        BrowserCommands.back();
         break;
       case "K":
-        BrowserCommands.forward()
+        BrowserCommands.forward();
         break;
 
       case "r":
-        console.log("[reloading]");
-        BrowserCommands.reload()
+        BrowserCommands.reload();
         break;
       case "R":
-        console.log("[reloading, skipping cache]");
-        BrowserCommands.reloadSkipCache()
+        BrowserCommands.reloadSkipCache();
         break;
 
       case "/":
+        window.gBrowser.vim_mode = "insert";
         gLazyFindCommand("onFindCommand");
+        break;
+      case "n":
+        gLazyFindCommand("onFindAgainCommand", false);
+        break;
+      case "N":
+        gLazyFindCommand("onFindAgainCommand", true);
         break;
 
       case "u":
@@ -397,12 +421,16 @@ var gBrowserInit = {
         break;
 
       case "Escape":
-        defocusInput();
+        this._defocusInput();
         window.gBrowser.vim_mode = "normal";
         break;
       default:
         break;
     }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
 
   },
 
@@ -704,12 +732,23 @@ var gBrowserInit = {
 
     ShoppingSidebarManager.ensureInitialized();
 
-    //-/--/--/-//
-    // custom  //
-    // jgs24   //
-    //-/--/--/-//
+    // custom 
+    // jgs
+
+    let _vimMode = "normal";
+    const _self = this;
+    Object.defineProperty(window.gBrowser, 'vim_mode', {
+      get: () => _vimMode,
+      set: (newVal) => {
+        _vimMode = newVal;
+        if (newVal == "normal") _self._defocusInput();
+        document.getElementById('vim-mode-button').label = newVal;
+      }
+    })
+
     window.gBrowser.vim_mode = 'normal';
-    window.addEventListener("keydown", this._handleVimKeys);
+
+    window.addEventListener("keydown", this._handleVimKeys.bind(this), { capture: true, passive: false });
 
     SessionStore.promiseAllWindowsRestored.then(() => {
       this._schedulePerWindowIdleTasks();
